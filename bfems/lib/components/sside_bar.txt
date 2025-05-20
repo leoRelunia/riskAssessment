@@ -1,0 +1,261 @@
+
+import 'package:bfems/pages/risk_assessment/sitrep.dart';
+import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+
+import '/pages/calamity_page.dart';
+import '/pages/dashboard_page.dart';
+import '/pages/profiling/household.dart';
+import '/pages/profiling/individual.dart';
+import '/pages/relief_operation/relief_operation.dart';
+
+class SideBar extends StatefulWidget {
+  final bool isProfilingExpanded;
+  final String selectedMenu;
+  final void Function(String, Widget) onMenuSelect;
+  final VoidCallback toggleProfiling;
+
+  const SideBar({
+    super.key,
+    required this.isProfilingExpanded,
+    required this.selectedMenu,
+    required this.onMenuSelect,
+    required this.toggleProfiling,
+  });
+
+  @override
+  State<SideBar> createState() => _SideBarState();
+}
+
+class _SideBarState extends State<SideBar> {
+  String _userPosition = '';
+
+  @override
+  void initState() {
+    super.initState();
+    _loadUserPosition();
+  }
+
+  /Future<void> _loadUserPosition() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    setState(() {
+      _userPosition = prefs.getString('position') ?? '';
+    });
+  }
+
+  void _handleAccessControl({
+    required List<String> allowedPositions,
+    required String label,
+    required Widget page,
+  }) {
+    if (allowedPositions.contains(_userPosition) || _userPosition == 'Captain') {
+      widget.onMenuSelect(label, page);
+    } else {
+      _showAccessDeniedMessage();
+    }
+  }
+
+  void _showAccessDeniedMessage() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text("Access Denied"),
+        content: const Text("You don't have access to this section."),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text("OK"),
+          ),
+        ],
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 250,
+      decoration: const BoxDecoration(
+        color: Colors.white,
+        border: Border(right: BorderSide(color: Color(0xFFC0C0C0))),
+      ),
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 18),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _buildMenuItem(
+            icon: 'assets/images/dashboard-icon.png',
+            label: 'Dashboard',
+            isSelected: widget.selectedMenu == 'Dashboard',
+            onTap: () => _handleAccessControl(
+              allowedPositions: ['Captain', 'Kagawad', 'Secretary', 'Treasurer'], // Only Captain can access dashboard
+              label: 'Dashboard',
+              page: Dashboardpage(),
+            ),
+          ),
+          const SizedBox(height: 11),
+          GestureDetector(
+            onTap: () {
+              if (_userPosition == 'Captain' || _userPosition == 'Secretary') {
+                widget.toggleProfiling();
+              } else {
+                _showAccessDeniedMessage();
+              }
+            },
+            child: _buildMenuItem(
+              icon: 'assets/images/profiling-icon.png',
+              label: 'Profiling',
+              isSelected: widget.selectedMenu == 'Profiling' || widget.isProfilingExpanded,
+              arrowIcon: widget.isProfilingExpanded ? Icons.keyboard_arrow_up : Icons.keyboard_arrow_down,
+            ),
+          ),
+          if (widget.isProfilingExpanded &&
+              (_userPosition == 'Captain' || _userPosition == 'Secretary')) ...[
+            Padding(
+              padding: const EdgeInsets.only(left: 55),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  GestureDetector(
+                    onTap: () => _handleAccessControl(
+                      allowedPositions: ['Secretary'],
+                      label: 'Household List',
+                      page: HouseholdPage(),
+                    ),
+                    child: Padding(
+                      padding: const EdgeInsets.only(top: 12),
+                      child: Text(
+                        'Household List',
+                        style: TextStyle(
+                          color: widget.selectedMenu == 'Household List'
+                              ? const Color(0xFF5576F5)
+                              : const Color(0xFF9E9E9E),
+                          decoration: widget.selectedMenu == 'Household List'
+                              ? TextDecoration.underline
+                              : TextDecoration.none,
+                          fontSize: 16,
+                          fontWeight: FontWeight.w400,
+                          fontFamily: 'Poppins',
+                        ),
+                      ),
+                    ),
+                  ),
+                  GestureDetector(
+                    onTap: () => _handleAccessControl(
+                      allowedPositions: ['Secretary'],
+                      label: 'Individual List',
+                      page: const IndividualPage(),
+                    ),
+                    child: Padding(
+                      padding: const EdgeInsets.only(top: 12),
+                      child: Text(
+                        'Individual List',
+                        style: TextStyle(
+                          color: widget.selectedMenu == 'Individual List'
+                              ? const Color(0xFF5576F5)
+                              : const Color(0xFF9E9E9E),
+                          decoration: widget.selectedMenu == 'Individual List'
+                              ? TextDecoration.underline
+                              : TextDecoration.none,
+                          fontSize: 16,
+                          fontWeight: FontWeight.w400,
+                          fontFamily: 'Poppins',
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+          const SizedBox(height: 11),
+          _buildMenuItem(
+            icon: 'assets/images/calamity-icon.png',
+            label: 'Calamity',
+            isSelected: widget.selectedMenu == 'Calamity',
+            onTap: () => _handleAccessControl(
+              allowedPositions: ['Kagawad', 'Secretary'],
+              label: 'Calamity',
+              page: const CalamityPage(),
+            ),
+          ),
+          _buildMenuItem(
+            icon: 'assets/images/relief-icon.png',
+            label: 'Relief Operation',
+            isSelected: widget.selectedMenu == 'Relief',
+            onTap: () => _handleAccessControl(
+              allowedPositions: ['Treasurer'],
+              label: 'Relief',
+              page: const ReliefOperationPage(),
+            ),
+          ),
+          _buildMenuItem(
+            icon: 'assets/images/sitrep.png',
+            label: 'Situational Report',
+            isSelected: widget.selectedMenu == 'SitRep',
+            onTap: () => _handleAccessControl(
+              allowedPositions: ['Captain'],
+              label: 'Sitrep',
+              page: const SitRepPage(),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildMenuItem({
+    required String icon,
+    required String label,
+    required bool isSelected,
+    VoidCallback? onTap,
+    IconData? arrowIcon,
+  }) {
+    return GestureDetector(
+      onTap: onTap,
+      child: MouseRegion(
+        cursor: SystemMouseCursors.click,
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(10),
+            color: isSelected ? const Color(0xFF5576F5) : Colors.transparent,
+          ),
+          child: Row(
+            children: [
+              Image.asset(
+                icon,
+                width: 20,
+                height: 20,
+                color: isSelected ? Colors.white : const Color(0xFF9E9E9E),
+              ),
+              const SizedBox(width: 15, height: 40),
+              Expanded(
+                child: LayoutBuilder(
+                  builder: (context, constraints) {
+                    return Text(
+                      label,
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w400,
+                        fontFamily: 'Poppins',
+                        color: isSelected ? Colors.white : const Color(0xFF9E9E9E),
+                      ),
+                      overflow: constraints.maxWidth < 100 ? TextOverflow.ellipsis : null,
+                      maxLines: 1,
+                    );
+                  },
+                ),
+              ),
+              if (arrowIcon != null)
+                Icon(
+                  arrowIcon,
+                  color: isSelected ? Colors.white : const Color(0xFF9E9E9E),
+                ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}

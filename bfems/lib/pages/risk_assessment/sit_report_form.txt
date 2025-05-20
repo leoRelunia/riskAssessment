@@ -1,0 +1,766 @@
+// ignore_for_file: file_names
+
+import 'dart:convert';
+import 'package:bfems/dialogs/validation_dialog.dart';
+import 'package:bfems/widgets/buttons/add_button.dart';
+import 'package:bfems/widgets/buttons/back_button.dart';
+import 'package:bfems/widgets/buttons/save_button.dart';
+import 'package:flutter/material.dart';
+import 'package:bfems/widgets/search_bar copy.dart' as custom;
+import 'package:http/http.dart' as http;
+import 'package:intl/intl.dart';
+
+
+class SitRepPage extends StatelessWidget {
+  const SitRepPage({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(backgroundColor: const Color(0xFFF6F7F9),),
+      body: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 30),
+        child: Column(
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const custom.SearchBar(),
+                AddButton(
+                  label: 'Add SITREP',
+                  onPressed: () {
+                    _showSitRepForm(context); 
+                  },
+                ),
+              ],
+            ),
+            const SizedBox(height: 10),
+            _buildIndividualTable(),
+          ],
+        ),
+      ),
+    );
+  }
+
+Future<List<Map<String, dynamic>>> _fetchReports() async {
+  try {
+    final url = Uri.parse('http://localhost/rareportdb/sitrep_get_report.php');
+    final response = await http.get(url);
+
+    if (response.statusCode == 200) {
+      List<dynamic> data = json.decode(response.body);
+      return List<Map<String, dynamic>>.from(data);
+    } else {
+      throw Exception('Failed to load reports');
+    }
+  } catch (e) {
+    print('Error fetching reports: $e');
+    return [];
+  }
+}
+
+Widget _buildIndividualTable() {
+  return FutureBuilder<List<Map<String, dynamic>>>(
+    future: _fetchReports(),
+    builder: (context, snapshot) {
+      if (snapshot.connectionState == ConnectionState.waiting) {
+        return const Center(child: CircularProgressIndicator());
+      }
+
+      if (snapshot.hasError || !snapshot.hasData || snapshot.data!.isEmpty) {
+        return _buildEmptyTable(); // Show "No Reports available."
+      }
+
+      return _buildTableWithData(snapshot.data!);
+    },
+  );
+}
+
+Widget _buildEmptyTable() {
+  return Container(
+    width: double.infinity,
+    height: 730,
+    decoration: BoxDecoration(
+      color: Colors.white,
+      border: Border.all(color: const Color(0xFFCCCCCC)),
+      borderRadius: BorderRadius.circular(10),
+    ),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        // Table Header Row
+        Container(
+          padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 10),
+          decoration: const BoxDecoration(
+            color: Color(0xFFEFEFEF), // Light grey background for header
+            border: Border(
+              bottom: BorderSide(color: Color(0xFFCCCCCC)),
+            ),
+          ),
+          child: Row(
+            children: [
+              _buildHeaderCell('Date/Time', flex: 3),
+              _buildHeaderCell('Calamity Name', flex: 3),
+              _buildHeaderCell('Type of Calamity', flex: 3),
+              _buildHeaderCell('Cause of Calamity', flex: 3),
+              _buildHeaderCell('Action', flex: 1, center: true)
+            ],
+          ),
+        ),
+
+        // "No Reports available" Message
+        Expanded(
+          child: Center(
+            child: Text(
+              'No Reports available.',
+              style: TextStyle(
+                color: Color(0xFFCBCBCB),
+                fontFamily: 'Poppins',
+                fontSize: 16,
+                fontWeight: FontWeight.w400,
+              ),
+            ),
+          ),
+        ),
+      ],
+    ),
+  );
+}
+
+Widget _buildTableWithData(List<Map<String, dynamic>> reports) {
+  return Container(
+    width: double.infinity,
+    height: 730,
+    decoration: BoxDecoration(
+      color: Colors.white,
+      border: Border.all(color: const Color(0xFFCCCCCC)),
+      borderRadius: BorderRadius.circular(10),
+    ),
+    child: Column(
+      children: [
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 22),
+          decoration: const BoxDecoration(
+            color: Colors.white,
+            border: Border(bottom: BorderSide(color: Color(0xFFCCCCCC))),
+            borderRadius: BorderRadius.vertical(top: Radius.circular(10)),
+          ),
+          child: Row(
+            children: [
+              _buildHeaderCell('Date/Time', flex: 3),
+              _buildHeaderCell('Calamity Name', flex: 3),
+              _buildHeaderCell('Type of Calamity', flex: 3),
+              _buildHeaderCell('Cause of Calamity', flex: 3),
+              _buildHeaderCell('Action', flex: 1, center: true)
+            ],
+          ),
+        ),
+        Expanded(
+          child: ListView.builder(
+            itemCount: reports.length,
+            itemBuilder: (context, index) {
+              final report = reports[index];
+              return Container(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                decoration: const BoxDecoration(
+                  border: Border(bottom: BorderSide(color: Color(0xFFCCCCCC))),
+                ),
+                child: Row(
+                  children: [
+                    _buildDataCell(report['dtime'], flex: 3),
+                    _buildDataCell(report['calname'], flex: 3),
+                    _buildDataCell(report['caltype'], flex: 3),
+                    _buildDataCell(report['calcause'], flex: 3),
+                    Expanded(
+                              flex: 1,
+                              child: Center(
+                                child: PopupMenuButton<String>(
+                                  color: Colors.white, // Change background color here
+                                  onSelected: (value) {
+                                  if (value == 'View') {
+                                    // Define your update logic here
+                                  } else if (value == 'Delete') {
+                                    // Define your delete logic here
+                                  }
+                                  },
+                                    itemBuilder: (BuildContext context) {
+                                    return [
+                                    const PopupMenuItem(
+                                    value: 'Update',
+                                    child: Text('View', style: TextStyle(fontFamily: 'Poppins', fontSize: 12, fontWeight: FontWeight.w400)),
+                                    ),
+                                    const PopupMenuItem(
+                                    value: 'Print',
+                                    child: Text('Print', style: TextStyle(fontFamily: 'Poppins', fontSize: 12, fontWeight: FontWeight.w400)),
+                                    ),
+                                    ];
+                                    },
+                                  child: const Icon(
+                                    Icons.more_vert),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      );
+                    },
+                  ),
+                ),
+        ],
+      ),
+    );
+  }
+
+Widget _buildDataCell(String? value, {int flex = 1, bool center = false}) {
+  return Expanded(
+    flex: flex,
+    child: Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 8),
+      child: Text(
+        value ?? '-',
+        style: const TextStyle(
+          fontSize: 12,
+          fontWeight: FontWeight.w400,
+          fontFamily: 'Poppins',
+          color: Color(0xFF4B4B4B),
+        ),
+        overflow: TextOverflow.ellipsis,
+        textAlign: center ? TextAlign.center : TextAlign.start,
+      ),
+    ),
+  );
+}
+  Widget _buildHeaderCell(String label, {int flex = 1, bool center = false}) {
+    return Expanded(
+      flex: flex,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 8),
+        child: Text(
+          label,
+          style: const TextStyle(
+            fontSize: 12,
+            fontWeight: FontWeight.w600,
+            fontFamily: 'Poppins',
+            color: Color(0xFF4B4B4B),
+          ),
+          overflow: TextOverflow.ellipsis,
+          textAlign: center ? TextAlign.center : TextAlign.start,
+        ),
+      ),
+    );
+  }
+
+  void _showSitRepForm(BuildContext context) {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext context) {
+        return Dialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+          ),
+          child: SitRepForm(),
+        );
+      },
+    );
+  }
+}
+
+
+class SitRepForm extends StatefulWidget {
+  @override
+  _SitRepFormState createState() => _SitRepFormState();
+}
+
+class _SitRepFormState extends State<SitRepForm>{
+  final PageController _pageController = PageController();
+  int _currentPage = 0;
+
+  
+  final TextEditingController calamityNameController = TextEditingController();
+  final TextEditingController dateTimeController = TextEditingController();
+  final TextEditingController barangayLocController = TextEditingController();
+  final TextEditingController barangayPnumController = TextEditingController();
+  final TextEditingController dateController = TextEditingController();
+  final TextEditingController sitToDateController = TextEditingController();
+  final TextEditingController actToDateController = TextEditingController();
+  final TextEditingController actTobeComController = TextEditingController();
+  final TextEditingController issuesController = TextEditingController();
+  final TextEditingController preparedByController = TextEditingController();
+  final TextEditingController typeCalamityController = TextEditingController();
+  final TextEditingController causeCalamityController = TextEditingController();
+
+  @override
+  void dispose() {
+    _pageController.dispose();
+    calamityNameController.dispose();
+    dateTimeController.dispose();
+    dateController.dispose();
+    barangayPnumController.dispose();
+    barangayLocController.dispose();
+    sitToDateController.dispose();
+    actToDateController.dispose();
+    actTobeComController.dispose();
+    issuesController.dispose();
+    preparedByController.dispose();
+    typeCalamityController.dispose();
+    causeCalamityController.dispose();
+    super.dispose();
+  }
+  
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: 1000,
+      height: 780,
+      child: Stack(
+        children: [
+        PageView(
+          controller: _pageController,
+          onPageChanged: (index) {
+            setState(() {
+              _currentPage = index;
+            });
+          },
+          children: [
+            _buildFirstForm(),
+            _buildSecondForm(),
+          ],
+        ),
+        
+        Positioned(
+            top: 8,
+            right: 8,
+            child: IconButton(
+              icon: const Icon(Icons.close, color: Color(0xFF9E9E9E)),
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+            ),
+          ),
+         
+         Positioned(
+            bottom: 18,
+            left: 25,
+            child: Visibility(
+              visible: _currentPage > 0,
+                child: CustomBackButton(
+                    onPressed: () {
+                      _pageController.previousPage(
+                      duration: const Duration(milliseconds: 300),
+                      curve: Curves.ease,
+                      );
+                    },
+                    label: 'Back',
+    ),
+  ),
+),
+        Positioned(
+          bottom: 18,
+          right: 25,
+            child: SaveButton(
+            onPressed: () {
+            if (_currentPage == 0) {
+            _pageController.nextPage(
+            duration: const Duration(milliseconds: 300),
+            curve: Curves.ease,
+        );
+      } else {
+        _saveData(context); // Save on the last page
+      }
+            },
+              label: _currentPage == 0 ? 'Next' : 'Save',
+             ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildFirstForm() {
+    return Container(
+            padding: const EdgeInsets.all(58.0),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(color: const Color(0xFFCBCBCB))
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const SizedBox(height: 8),
+                const Text(
+                  'Calamity Information',
+                  style: TextStyle(
+                    color:  Color(0xFF5576F5),
+                    fontSize: 24,
+                    fontFamily: 'Poppins',
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                const SizedBox(height:8),
+
+                Expanded(
+                  child: Container(
+                    padding: const EdgeInsets.all(23),
+                  decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: Colors.grey.shade300),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.grey.withOpacity(0.2),
+                      blurRadius: 5,
+                      spreadRadius: 1,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
+                ),
+
+                child: SingleChildScrollView(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const SizedBox(height: 10),
+                      Row(
+                        children: [
+                            Expanded(child: _buildDateField(context)),
+                            const SizedBox(width: 500),
+                        ],
+                      ),
+                      const SizedBox(height: 10),
+                      Row(
+                        children: [
+                            Expanded(child: _buildTextField('Calamity Name', calamityNameController)),
+                            const SizedBox(width: 500),
+                        ],
+                      ),
+                      const SizedBox(height:10),
+                        Row(
+                        children: [
+                            Expanded(child: _buildTextField('Type of Calamity', typeCalamityController)),
+                            const SizedBox(width: 500),
+                        ],
+                      ),
+                          const SizedBox(height:10),
+                        Row(
+                        children: [
+                            Expanded(child: _buildTextField('Cause of Calamity', causeCalamityController)),
+                            const SizedBox(width: 500),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+                  )
+                  ),
+              ],
+          ),
+    );
+  }
+
+  Widget _buildSecondForm() {
+    return Container(
+            padding: const EdgeInsets.all(80.0),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(color: const Color(0xFFCBCBCB))
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const SizedBox(height: 8),
+                const Text(
+                  'Situational Report',
+                  style: TextStyle(
+                    color:  Color(0xFF5576F5),
+                    fontSize: 24,
+                    fontFamily: 'Poppins',
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                const SizedBox(height:10),
+
+                Expanded(
+                  child: Container(
+                    padding: const EdgeInsets.all(23),
+                  decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: Colors.grey.shade300),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.grey.withOpacity(0.2),
+                      blurRadius: 5,
+                      spreadRadius: 1,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
+                ),
+
+                child: SingleChildScrollView(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const SizedBox(height: 10),
+                      Row(
+                        children: [
+                            Expanded(child: _buildTextField('Barangay Location', barangayLocController)),
+                            const SizedBox(width: 500),
+                        ],
+                      ),
+                      const SizedBox(height: 10),
+                      Row(
+                        children: [
+                            Expanded(child: _buildTextField('Barangay Contact No.', barangayPnumController)),
+                            const SizedBox(width: 500),
+                        ],
+                      ),
+                      const SizedBox(height: 10),
+                      Row(
+                        children: [
+                            Expanded(child: _buildTextField('Date of Issue', dateController)),
+                            const SizedBox(width: 500),
+                        ],
+                      ),
+                      const SizedBox(height: 35),
+                      Row(
+                        children: [
+                            Expanded(child: _buildTextBigField('Situation to Date', sitToDateController)),
+                        ],
+                      ),
+                      const SizedBox(height: 10),
+                      Row(
+                        children: [
+                            Expanded(child: _buildTextBigField('Action to Date', actToDateController)),
+                        ],
+                      ),
+                      const SizedBox(height: 10),
+                      Row(
+                        children: [
+                            Expanded(child: _buildTextBigField('Action to be Completed', actTobeComController)),
+                        ],
+                      ),
+                      const SizedBox(height: 10),
+                      Row(
+                        children: [
+                            Expanded(child: _buildTextBigField('Issues', issuesController)),
+                        ],
+                      ),
+
+                      const SizedBox(height: 50),
+                      Row(
+                        children: [
+                            Expanded(child: _buildTextField('Prepared By', preparedByController)),
+                            const SizedBox(width: 500),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+                  )
+                  ),
+              ],
+          ),
+          );
+  }
+
+  InputDecoration _inputDecoration(String label) {
+    return InputDecoration(
+      labelText: label,
+      labelStyle: const TextStyle(
+        color: Color(0xFFCBCBCB),
+        fontFamily: 'Poppins',
+        fontSize: 14,
+        fontWeight: FontWeight.w400,
+      ),
+      contentPadding: const EdgeInsets.symmetric(vertical: 8, horizontal: 8),
+      border: const OutlineInputBorder(
+        borderSide: BorderSide(color: Color(0xFFCBCBCB)),
+      ),
+      focusedBorder: const OutlineInputBorder(
+        borderSide: BorderSide(color: Color(0xFF4076F5), width: 2.0),
+      ),
+      enabledBorder: const OutlineInputBorder(
+        borderSide: BorderSide(color: Color(0xFFCBCBCB), width: 1.5),
+      ),
+      floatingLabelStyle: const TextStyle(
+        color: Color(0xFF4076F5),
+        fontFamily: 'Poppins',
+      ),
+    );
+  }
+
+Widget _buildTextField(String label, TextEditingController controller) {
+    return SizedBox(
+      height: 35,
+      width: 10,
+      child: TextField(
+        controller: controller,
+        decoration: _inputDecoration(label),
+      ),
+    );
+  }
+
+Widget _buildTextBigField(String label, TextEditingController controller) {
+  return SizedBox(
+    child: TextField(
+      controller: controller,
+      maxLines: 3, 
+      keyboardType: TextInputType.multiline,
+      decoration: _inputDecoration(label),
+    ),
+  );
+}
+
+
+Widget _buildDateField(BuildContext context) {
+  return GestureDetector(
+    onTap: () async {
+      DateTime? pickedDate = await showDatePicker(
+        context: context,
+        initialDate: DateTime.now(),
+        firstDate: DateTime(1900),
+        lastDate: DateTime(2100),
+        builder: (BuildContext context, Widget? child) {
+          return Theme(
+            data: ThemeData.light().copyWith(
+              colorScheme: const ColorScheme.light(
+                primary: Color(0xFF4076F5),
+                onPrimary: Colors.white,
+                surface: Colors.white,
+                onSurface: Color(0xFF4B4B4B),
+              ),
+              dialogBackgroundColor: Colors.white,
+            ),
+            child: child!,
+          );
+        },
+      );
+
+       if (pickedDate != null) {
+                        TimeOfDay? pickedTime = await showTimePicker(
+                          context: context,
+                          initialTime: TimeOfDay.now(),
+                          builder: (BuildContext context, Widget? child) {
+                            return Theme(
+                              data: ThemeData.light().copyWith(
+                                colorScheme: ColorScheme.light(
+                                  primary: const Color(0xFF5576F5),
+                                  onPrimary: Colors.white,
+                                  onSurface: Colors.black,
+                                ),
+                                dialogBackgroundColor: Colors.white,
+                              ),
+                              child: child!,
+                            );
+                          },
+                        );
+                        if (pickedTime != null) {
+                          final dateTime = DateTime(
+                            pickedDate.year,
+                            pickedDate.month,
+                            pickedDate.day,
+                            pickedTime.hour,
+                            pickedTime.minute,
+                          );
+                          dateTimeController.text =
+                              DateFormat('yyyy-MM-dd HH:mm').format(dateTime);
+                        }
+                      }
+                    },
+
+      child: AbsorbPointer(
+        child: SizedBox(
+          height: 35,
+          child: TextField(
+            controller: dateTimeController,
+            decoration: _inputDecoration('Date'),
+          ),
+        ),
+      ),
+    );
+  }
+
+    Future<void> _saveData(BuildContext context) async {
+        if (calamityNameController.text.isNotEmpty &&
+            dateTimeController.text.isNotEmpty &&
+            dateController.text.isNotEmpty &&
+            barangayLocController.text.isNotEmpty &&
+            barangayPnumController.text.isNotEmpty &&
+            sitToDateController.text.isNotEmpty &&
+            actToDateController.text.isNotEmpty &&
+            actTobeComController.text.isNotEmpty &&
+            issuesController.text.isNotEmpty &&
+            preparedByController.text.isNotEmpty &&
+            causeCalamityController.text.isNotEmpty &&
+            typeCalamityController.text.isNotEmpty){
+
+          try {
+          final data = {
+            'dtime': dateTimeController.text,
+            'calname': calamityNameController.text,
+            'caltype': typeCalamityController.text,
+            'calcause': causeCalamityController.text,
+            'barangayloc': barangayLocController.text,
+            'barangaypnum': barangayPnumController.text,
+            'ddate': dateController.text,
+            'stdate': sitToDateController.text,
+            'actdate': actToDateController.text,
+            'actbcompl': actTobeComController.text,
+            'issues': issuesController.text,
+            'preby': preparedByController.text,
+            
+        };
+
+        final url = Uri.parse('http://localhost/rareportdb/sitrep_save_report.php');
+
+        final response = await http.post(
+          url,
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: json.encode(data),
+        );
+
+        var responseBody = jsonDecode(response.body);
+        if (response.statusCode == 200 && responseBody["Success"] == true) {
+          print('Data saved successfully');
+
+          setState(() {
+            dateTimeController.clear();
+            calamityNameController.clear();
+            barangayLocController.clear();
+            barangayPnumController.clear();
+            dateController.clear();
+            sitToDateController.clear();
+            actToDateController.clear();
+            actTobeComController.clear();
+            issuesController.clear();
+            preparedByController.clear();
+            typeCalamityController.clear();
+            causeCalamityController.clear();
+          });
+
+          ValidationDialog.showSuccessDialog(
+            context,
+            'Data saved successfully!',
+            () {
+              Navigator.pop(context); // Close success dialog
+              Navigator.pop(context); // Close form
+            },
+          );
+        } else {
+          print('Failed to save data: ${response.body}');
+         ValidationDialog.showErrorDialog(context, 'Failed to save data. Please try again.');
+        }
+      } catch (e) {
+        print('Error: $e');
+        ValidationDialog.showErrorDialog(context, 'An error occurred. Please try again later.');
+      }
+    } else {
+      ValidationDialog.showErrorDialog(context, 'Please fill in all fields.');
+    }
+  }
+}

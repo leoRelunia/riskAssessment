@@ -1,0 +1,966 @@
+import 'dart:convert';
+import 'package:bfems/dialogs/validation_dialog.dart';
+import 'package:flutter/material.dart';
+import 'package:bfems/widgets/buttons/save_button.dart';
+import 'package:bfems/widgets/search_bar copy.dart' as custom;
+import 'package:bfems/widgets/buttons/add_button.dart';
+import 'package:intl/intl.dart';
+import 'package:http/http.dart' as http;
+
+class RaReportPage extends StatelessWidget {
+  const RaReportPage({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(backgroundColor: const Color(0xFFF6F7F9),),
+      body: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 30),
+        child: Column(
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                custom.SearchBar(onSearch: _updateSearchQuery), 
+                AddButton(
+                  label: 'Add Report',
+                  onPressed: () {
+                    _showRAForm(context); 
+                  },
+                ),
+              ],
+            ),
+            const SizedBox(height: 10),
+            _buildIndividualTable(),
+          ],
+    ),
+      ),
+    );
+  }
+
+Future<List<Map<String, dynamic>>> _fetchReports() async {
+  try {
+    final url = Uri.parse('http://localhost/rareportdb/ra_get_report.php');
+    final response = await http.get(url);
+
+    if (response.statusCode == 200) {
+      List<dynamic> data = json.decode(response.body);
+      return List<Map<String, dynamic>>.from(data);
+    } else {
+      throw Exception('Failed to load reports');
+    }
+  } catch (e) {
+    print('Error fetching reports: $e');
+    return [];
+  }
+}
+
+Widget _buildIndividualTable() {
+  return FutureBuilder<List<Map<String, dynamic>>>(
+    future: _fetchReports(),
+    builder: (context, snapshot) {
+      if (snapshot.connectionState == ConnectionState.waiting) {
+        return const Center(child: CircularProgressIndicator());
+      }
+
+      if (snapshot.hasError || !snapshot.hasData || snapshot.data!.isEmpty) {
+        return _buildEmptyTable(); // Show "No Reports available."
+      }
+
+      return _buildTableWithData(snapshot.data!, context);
+    }
+  );
+}
+
+Widget _buildEmptyTable() {
+  return Container(
+    width: double.infinity,
+    height: 730,
+    decoration: BoxDecoration(
+      color: Colors.white,
+      border: Border.all(color: const Color(0xFFCCCCCC)),
+      borderRadius: BorderRadius.circular(10),
+    ),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        // Table Header Row
+        Container(
+          padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 10),
+          decoration: const BoxDecoration(
+            color: Color(0xFFEFEFEF), // Light grey background for header
+            border: Border(
+              bottom: BorderSide(color: Color(0xFFCCCCCC)),
+            ),
+          ),
+          child: Row(
+            children: [
+              _buildHeaderCell('Kagawad Name', flex: 2),
+              _buildHeaderCell('Date/Time', flex: 2),
+              _buildHeaderCell('Zone', flex: 1),
+              _buildHeaderCell('Risk Type', flex: 1),
+              _buildHeaderCell('Household Info', flex: 2),
+              _buildHeaderCell('PWD Impacted', flex: 1),
+              _buildHeaderCell('SC Impacted', flex: 1),
+              _buildHeaderCell('I&T Impacted', flex: 1),
+              _buildHeaderCell('Flood Fatality', flex: 1),
+              _buildHeaderCell('Property Damage', flex: 3),
+              _buildHeaderCell('Risk Impact', flex: 1),
+              _buildHeaderCell('Risk Probability', flex: 1),
+              _buildHeaderCell('Risk Severity Level', flex: 1),
+              _buildHeaderCell('Current Control Measures', flex: 3),
+              _buildHeaderCell('Action Needed', flex: 1),
+              _buildHeaderCell('Action', flex: 1, center: true)
+            ],
+          ),
+        ),
+
+        // "No Reports available" Message
+        Expanded(
+          child: Center(
+            child: Text(
+              'No Reports available.',
+              style: TextStyle(
+                color: Color(0xFFCBCBCB),
+                fontFamily: 'Poppins',
+                fontSize: 16,
+                fontWeight: FontWeight.w400,
+              ),
+            ),
+          ),
+        ),
+      ],
+    ),
+  );
+}
+
+
+
+Widget _buildTableWithData(List<Map<String, dynamic>> reports, BuildContext context) {
+  return Container(
+    width: double.infinity,
+    height: 730,
+    decoration: BoxDecoration(
+      color: Colors.white,
+      border: Border.all(color: const Color(0xFFCCCCCC)),
+      borderRadius: BorderRadius.circular(10),
+    ),
+    child: Column(
+      children: [
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 22),
+          decoration: const BoxDecoration(
+            color: Colors.white,
+            border: Border(bottom: BorderSide(color: Color(0xFFCCCCCC))),
+            borderRadius: BorderRadius.vertical(top: Radius.circular(10)),
+          ),
+          child: Row(
+            children: [
+              _buildHeaderCell('Kagawad Name', flex: 2),
+              _buildHeaderCell('Date/Time', flex: 2),
+              _buildHeaderCell('Zone', flex: 1),
+              _buildHeaderCell('Risk Type', flex: 1),
+              _buildHeaderCell('Household Info', flex: 2),
+              _buildHeaderCell('PWD Impacted', flex: 1),
+              _buildHeaderCell('SC Impacted', flex: 1),
+              _buildHeaderCell('I&T Impacted', flex: 1),
+              _buildHeaderCell('Flood Fatality', flex: 1),
+              _buildHeaderCell('Property Damage', flex: 3),
+              _buildHeaderCell('Risk Impact', flex: 1),
+              _buildHeaderCell('Risk Probability', flex: 1),
+              _buildHeaderCell('Risk Severity Level', flex: 1),
+              _buildHeaderCell('Current Control Measures', flex: 3),
+              _buildHeaderCell('Action Needed', flex: 1),
+              _buildHeaderCell('Action', flex: 1, center: true)
+            ],
+          ),
+        ),
+        Expanded(
+          child: ListView.builder(
+            itemCount: reports.length,
+            itemBuilder: (context, index) {
+              final report = reports[index];
+              return Container(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                decoration: const BoxDecoration(
+                  border: Border(bottom: BorderSide(color: Color(0xFFCCCCCC))),
+                ),
+                child: Row(
+                  children: [
+                    _buildDataCell(report['kagname'], flex: 2),
+                    _buildDataCell(report['dtime'], flex: 2),
+                    _buildDataCell(report['zonenum'], flex: 1),
+                    _buildDataCell(report['risktype'], flex: 1),
+                    _buildDataCell(report['hhinfo'], flex: 2),
+                    _buildDataCell(report['numpwd'], flex: 1),
+                    _buildDataCell(report['numsc'], flex: 1),
+                    _buildDataCell(report['numit'], flex: 1),
+                    _buildDataCell(report['numff'], flex: 1),
+                    _buildDataCell(report['prodam'], flex: 3),
+                    _buildDataCell(report['ilevel'], flex: 1),
+                    _buildDataCell(report['plevel'], flex: 1),
+                    _buildDataCell(report['rslevel'], flex: 1),
+                    _buildDataCell(report['ccmeasures'], flex: 3),
+                    _buildDataCell(report['actionny'], flex: 1, center: true),
+                    Expanded(
+                      flex: 1,
+                      child: Center(
+                        child: PopupMenuButton<String>(
+                          color: Colors.white,
+                          onSelected: (value) {
+                             if (value == 'View') {
+                              
+                              } else if (value == 'Delete') {
+                              //_deleteRaReport(context, report['ra_id']);
+                          }
+                          },
+                          itemBuilder: (BuildContext context) {
+                            return [
+                              const PopupMenuItem(
+                                value: 'View',
+                                child: Text('View', style: TextStyle(fontFamily: 'Poppins', fontSize: 12, fontWeight: FontWeight.w400)),
+                              ),
+                              const PopupMenuItem(
+                                value: 'Delete',
+                                child: Text('Delete', style: TextStyle(fontFamily: 'Poppins', fontSize: 12, fontWeight: FontWeight.w400)),
+                              ),
+                            ];
+                          },
+                          child: const Icon(Icons.more_vert),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            },
+          ),
+        ),
+      ],
+    ),
+  );
+}
+
+
+Widget _buildDataCell(String? value, {int flex = 1, bool center = false}) {
+  return Expanded(
+    flex: flex,
+    child: Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 8),
+      child: Text(
+        value ?? '-',
+        style: const TextStyle(
+          fontSize: 12,
+          fontWeight: FontWeight.w400,
+          fontFamily: 'Poppins',
+          color: Color(0xFF4B4B4B),
+        ),
+        overflow: TextOverflow.ellipsis,
+        textAlign: center ? TextAlign.center : TextAlign.start,
+      ),
+    ),
+  );
+}
+  Widget _buildHeaderCell(String label, {int flex = 1, bool center = false}) {
+    return Expanded(
+      flex: flex,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 8),
+        child: Text(
+          label,
+          style: const TextStyle(
+            fontSize: 12,
+            fontWeight: FontWeight.w600,
+            fontFamily: 'Poppins',
+            color: Color(0xFF4B4B4B),
+          ),
+          overflow: TextOverflow.ellipsis,
+          textAlign: center ? TextAlign.center : TextAlign.start,
+        ),
+      ),
+    );
+  }
+  void _showRAForm(BuildContext context) {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext context) {
+        return Dialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+          ),
+          child: RAReportForm(),
+        );
+      },
+    );
+  }
+
+  /*void _deleteRaReport(BuildContext context, String riskReportID) async {
+  ValidationDialog.showDeleteDialog(
+    context: context,
+    message: 'Are you sure you want to delete this record?',
+    onConfirm: () async {
+      Navigator.of(context).pop(); // Close the confirmation dialog
+      try {
+        final url = Uri.parse('http://localhost/rareportdb/ra_delete_report.php');
+        final response = await http.post(url, body: {'ra_id': riskReportID});
+
+        if (response.statusCode == 200) {
+          var responseData = json.decode(response.body);
+          if (responseData['success'] == true) {
+            await _fetchReports(); // Refresh reports after deletion
+            _showSuccessDialog(context, "Record deleted successfully");
+          } else {
+            _showErrorDialog(context, "Failed to delete record: ${responseData['message']}");
+          }
+        } else {
+          _showErrorDialog(context, "Failed to connect to the server.");
+        }
+      } catch (e) {
+        _showErrorDialog(context, "Error deleting record: $e");
+      }
+    },
+  );
+}*/
+
+/* void _showReportDialog(BuildContext context, Map<String, dynamic> report) {
+  showDialog(
+    context: context,
+    builder: (context) {
+      return AlertDialog(
+        title: const Text("Report Details"),
+        content: SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _buildReportDetail("Kagawad Name", report['kagname']),
+              _buildReportDetail("Date/Time", report['dtime']),
+              _buildReportDetail("Zone", report['zonenum']),
+              _buildReportDetail("Risk Type", report['risktype']),
+              _buildReportDetail("Household Info", report['hhinfo']),
+              _buildReportDetail("PWD Impacted", report['numpwd']),
+              _buildReportDetail("SC Impacted", report['numsc']),
+              _buildReportDetail("I&T Impacted", report['numit']),
+              _buildReportDetail("Flood Fatality", report['numff']),
+              _buildReportDetail("Property Damage", report['prodam']),
+              _buildReportDetail("Risk Impact", report['ilevel']),
+              _buildReportDetail("Risk Probability", report['plevel']),
+              _buildReportDetail("Risk Severity", report['rslevel']),
+              _buildReportDetail("Current Measures", report['ccmeasures']),
+              _buildReportDetail("Action Needed", report['actionny']),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text("Close"),
+          ),
+        ],
+      );
+    },
+  );
+} */
+
+/*Widget _buildReportDetail(String title, dynamic value) {
+  return Padding(
+    padding: const EdgeInsets.symmetric(vertical: 4.0),
+    child: Text(
+      "$title: ${value != null && value.toString().trim().isNotEmpty ? value : 'N/A'}",
+      style: const TextStyle(fontSize: 14),
+    ),
+  );
+}*/
+
+/*void _showSuccessDialog(BuildContext context, String message) {
+  showDialog(
+    context: context,
+    builder: (context) {
+      return AlertDialog(
+        title: const Text("Success"),
+        content: Text(message),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text("OK"),
+          ),
+        ],
+      );
+    },
+  );
+}
+
+void _showErrorDialog(BuildContext context, String message) {
+  showDialog(
+    context: context,
+    builder: (context) {
+      return AlertDialog(
+        title: const Text("Error"),
+        content: Text(message),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text("OK"),
+          ),
+        ],
+      );
+    },
+  );
+}*/
+
+}
+
+class RAReportForm extends StatefulWidget {
+  @override
+  _RAReportFormState createState() => _RAReportFormState();
+}
+
+class _RAReportFormState extends State<RAReportForm>{
+  final TextEditingController dateTimeController = TextEditingController();
+  final TextEditingController kagawadNameController = TextEditingController();
+  final TextEditingController hhInfoNameController = TextEditingController();
+  final TextEditingController riskDescriptionController = TextEditingController();
+  final TextEditingController sourceRiskController = TextEditingController();
+  final TextEditingController numPerWithDisabilityController = TextEditingController();
+  final TextEditingController numSeniorCitizenController = TextEditingController();
+  final TextEditingController numInfantToddlersController = TextEditingController();
+  final TextEditingController numFloodFatalityController = TextEditingController();
+  final TextEditingController propertyDamageController = TextEditingController();
+  final TextEditingController aRemarksController = TextEditingController();
+  final TextEditingController bRemarksController = TextEditingController();
+  final TextEditingController currentControlMeasuresController = TextEditingController();
+
+  String? selectedZone;
+  String? selectedRiskType;
+  String? selectedImapactLevel;
+  String? selectedProbabilityLevel;
+  String? selectedRiskSeverityLevel;
+  String? selectedActionYN;
+
+  @override
+  void dispose() {
+    dateTimeController.dispose();
+    kagawadNameController.dispose();
+    hhInfoNameController.dispose();
+    riskDescriptionController.dispose();
+    sourceRiskController.dispose();
+    numPerWithDisabilityController.dispose();
+    numSeniorCitizenController.dispose();
+    numInfantToddlersController.dispose();
+    numFloodFatalityController.dispose();
+    propertyDamageController.dispose();
+    aRemarksController.dispose();
+    bRemarksController.dispose();
+    currentControlMeasuresController.dispose();
+    super.dispose();
+  }
+
+ @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: 1000,
+      height: 780,
+      child: Stack(
+        children:[
+          Container(
+            padding: const EdgeInsets.all(58.0),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(color: const Color(0xFFCBCBCB))
+            ),
+            child: Column (
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const SizedBox(height:8),
+                const Text(
+                  'Risk Assessment Form',
+                  style: TextStyle(
+                    color: Color(0xFF5576F5),
+                    fontSize: 24,
+                    fontFamily: 'Poppins',
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                const SizedBox(height:8),
+                Expanded(
+                child: Container(
+                  padding: const EdgeInsets.all(23),
+                  decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: Colors.grey.shade300),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.grey.withOpacity(0.2),
+                      blurRadius: 5,
+                      spreadRadius: 1,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
+                ),
+                
+                  child: SingleChildScrollView(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                      const SizedBox(height:10),
+                      const Text(
+                        'Risk Information',
+                          style: TextStyle(
+                          color: Color.fromARGB(255, 122, 122, 122),
+                          fontSize: 12,
+                          fontFamily: 'Poppins',
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                      const SizedBox(height:10),
+                        Row(
+                          children: [
+                            Expanded(child: _buildTextField('Name of Kagawad', kagawadNameController)),
+                            const SizedBox(width: 8),
+                            Expanded(child: _buildDateField(context)),
+                            const SizedBox(width: 8),
+                            Expanded(                                             
+                              child: _buildDropdownField(
+                                'Zone',
+                                ['Zone 1', 'Zone 2', 'Zone 3'],
+                                (value) {
+                                  setState(() {
+                                    selectedZone = value;
+                                  });
+                                },
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                          ],
+                          ),
+                        const SizedBox(height: 10),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: _buildDropdownField(
+                                'Type of Risk',
+                                ['Flood Risk'],
+                                (value) {
+                                  setState(() {
+                                    selectedRiskType = value;
+                                  });
+                                },
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Expanded(child: _buildTextField('Household Information', hhInfoNameController)),
+                            const SizedBox(width: 8),
+                        ],
+                        ),
+                      const SizedBox(height: 10),
+                      Row(
+                        children: [
+                          Expanded(child: _buildTextField('Risk Description', riskDescriptionController)),
+                        ],
+                      ),
+                      const SizedBox(height: 10),
+                      Row(
+                        children: [
+                          Expanded(child: _buildTextField('Source of Risk', sourceRiskController)),
+                        ],
+                      ),
+                      const SizedBox(height:20),
+                      const Text(
+                        'Number of Person(s) Impacted',
+                          style: TextStyle(
+                          color: Color.fromARGB(255, 122, 122, 122),
+                          fontSize: 12,
+                          fontFamily: 'Poppins',
+                          fontWeight: FontWeight.w400,
+                        ),
+                      ),
+                      const SizedBox(height:10),
+                      Row(
+                        children: [
+                          Expanded(child: _buildTextField('Person with Disability(s)', numPerWithDisabilityController)),
+                          const SizedBox(width: 10),
+                          Expanded(child: _buildTextField('Senior Citizen(s)', numSeniorCitizenController)),
+                          const SizedBox(width: 10),
+                          Expanded(child: _buildTextField('Infant(s) & Toddler(s)',numInfantToddlersController)),
+                          const SizedBox(width: 10),
+                          Expanded(child: _buildTextField('Flood Fatality',numFloodFatalityController)),
+                        ],
+                      ),
+                      const SizedBox(height:10),
+                      Row(
+                        children: [
+                          Expanded(child: _buildTextField('Property Damage',propertyDamageController)),
+                           ],
+                      ),
+                      const SizedBox(height:10),
+                      Row(
+                        children: [
+                          Expanded(child: _buildTextBigField('Remarks', aRemarksController)),
+                        ],
+                      ),
+
+                      const SizedBox(height:20),
+                      const Text(
+                        'Risk Assess',
+                          style: TextStyle(
+                          color: Color.fromARGB(255, 122, 122, 122),
+                          fontSize: 12,
+                          fontFamily: 'Poppins',
+                          fontWeight: FontWeight.w400,
+                        ),
+                      ),
+                      const SizedBox(height:10),
+                      Row(
+                        children: [
+                          Expanded(
+                              child: _buildDropdownField(
+                                'Risk Impact',
+                                ['Not Significant', 'Minor', 'Moderate', 'Major', 'Severe'],
+                                (value) {
+                                  setState(() {
+                                    selectedImapactLevel = value;
+                                  });
+                                },
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                          Expanded(
+                              child: _buildDropdownField(
+                                'Risk Probability',
+                                ['Rare', 'Unlikely', 'Possible', 'Likely', 'Almost Certain'],
+                                (value) {
+                                  setState(() {
+                                    selectedProbabilityLevel = value;
+                                  });
+                                },
+                              ),
+                            ),
+                             const SizedBox(width: 8),
+                          Expanded(
+                              child: _buildDropdownField(
+                                'Risk Severity Level',
+                                ['LOW', 'LOW/MED', 'MED', 'MED/HIGH', 'HIGH'],
+                                (value) {
+                                  setState(() {
+                                    selectedRiskSeverityLevel = value;
+                                  });
+                                },
+                              ),
+                            ),
+                             
+                        ],
+                      ),
+                      const SizedBox(height: 20),
+                      const Text(
+                        'Implementation',
+                          style: TextStyle(
+                          color: Color.fromARGB(255, 122, 122, 122),
+                          fontSize: 12,
+                          fontFamily: 'Poppins',
+                          fontWeight: FontWeight.w400,
+                        ),
+                      ),
+                      const SizedBox(height:10),
+                        Row(
+                          children: [
+                            Expanded(child: _buildTextField('Current Control Measures', currentControlMeasuresController)),
+                          ],
+                        ),
+                      const SizedBox(height:10),
+                       Row(
+                          children: [
+                            Expanded(
+                              child: _buildDropdownField(
+                                'Further Action Needed',
+                                ['Yes', 'No'],
+                                (value) {
+                                  setState(() {
+                                    selectedActionYN = value;
+                                  });
+                                },
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Expanded(child: _buildTextBigField('Remarks', bRemarksController)),
+                          ],
+                        ),
+                      const SizedBox(height:20),
+                      ],
+                    ),
+                  ),
+                ),
+                ),
+              ],
+            ),
+          ),
+        Positioned(
+            top: 8,
+            right: 8,
+            child: IconButton(
+              icon: const Icon(Icons.close, color: Color(0xFF9E9E9E)),
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+            ),
+          ),
+          Positioned(
+            bottom: 18,
+            right: 25,
+            child: SaveButton(
+              onPressed: () {
+                _saveData(context);
+              },
+              label: 'Save',
+            ),
+          ),
+
+        ],
+      ),
+    );
+    
+  }
+
+
+InputDecoration _inputDecoration(String label) {
+    return InputDecoration(
+      labelText: label,
+      labelStyle: const TextStyle(
+        color: Color(0xFFCBCBCB),
+        fontFamily: 'Poppins',
+        fontSize: 14,
+        fontWeight: FontWeight.w400,
+      ),
+      contentPadding: const EdgeInsets.symmetric(vertical: 8, horizontal: 8),
+      border: const OutlineInputBorder(
+        borderSide: BorderSide(color: Color(0xFFCBCBCB)),
+      ),
+      focusedBorder: const OutlineInputBorder(
+        borderSide: BorderSide(color: Color(0xFF4076F5), width: 2.0),
+      ),
+      enabledBorder: const OutlineInputBorder(
+        borderSide: BorderSide(color: Color(0xFFCBCBCB), width: 1.5),
+      ),
+      floatingLabelStyle: const TextStyle(
+        color: Color(0xFF4076F5),
+        fontFamily: 'Poppins',
+      ),
+    );
+  }
+
+Widget _buildTextField(String label, TextEditingController controller) {
+    return SizedBox(
+      height: 35,
+      width: 10,
+      child: TextField(
+        controller: controller,
+        decoration: _inputDecoration(label),
+      ),
+    );
+  }
+
+Widget _buildTextBigField(String label, TextEditingController controller) {
+  return SizedBox(
+    child: TextField(
+      controller: controller,
+      maxLines: 5, 
+      keyboardType: TextInputType.multiline,
+      decoration: _inputDecoration(label),
+    ),
+  );
+}
+Widget _buildDropdownField(String label, List<String> items, ValueChanged<String?> onChanged) {
+    return SizedBox(
+      height: 35,
+      child: DropdownButtonFormField<String>(
+        decoration: _inputDecoration(label),
+        dropdownColor: Colors.white,
+        value: null,
+        items: items.map((value) {
+          return DropdownMenuItem<String>(
+            value: value,
+            child: Text(
+              value,
+              style: const TextStyle(
+                fontFamily: 'Poppins',
+                fontSize: 14,
+                color: Colors.black,
+                fontWeight: FontWeight.w400,
+              ),
+            ),
+          );
+        }).toList(),
+        onChanged: onChanged,
+      ),
+    );
+  }
+
+Widget _buildDateField(BuildContext context) {
+  return GestureDetector(
+    onTap: () async {
+      DateTime? pickedDate = await showDatePicker(
+        context: context,
+        initialDate: DateTime.now(),
+        firstDate: DateTime(1900),
+        lastDate: DateTime(2100),
+        builder: (BuildContext context, Widget? child) {
+          return Theme(
+            data: ThemeData.light().copyWith(
+              colorScheme: const ColorScheme.light(
+                primary: Color(0xFF4076F5),
+                onPrimary: Colors.white,
+                surface: Colors.white,
+                onSurface: Color(0xFF4B4B4B),
+              ),
+              dialogBackgroundColor: Colors.white,
+            ),
+            child: child!,
+          );
+        },
+      );
+
+       if (pickedDate != null) {
+                        TimeOfDay? pickedTime = await showTimePicker(
+                          context: context,
+                          initialTime: TimeOfDay.now(),
+                          builder: (BuildContext context, Widget? child) {
+                            return Theme(
+                              data: ThemeData.light().copyWith(
+                                colorScheme: ColorScheme.light(
+                                  primary: const Color(0xFF5576F5),
+                                  onPrimary: Colors.white,
+                                  onSurface: Colors.black,
+                                ),
+                                dialogBackgroundColor: Colors.white,
+                              ),
+                              child: child!,
+                            );
+                          },
+                        );
+                        if (pickedTime != null) {
+                          final dateTime = DateTime(
+                            pickedDate.year,
+                            pickedDate.month,
+                            pickedDate.day,
+                            pickedTime.hour,
+                            pickedTime.minute,
+                          );
+                          dateTimeController.text =
+                              DateFormat('yyyy-MM-dd HH:mm').format(dateTime);
+                        }
+                      }
+                    },
+
+      child: AbsorbPointer(
+        child: SizedBox(
+          height: 35,
+          child: TextField(
+            controller: dateTimeController,
+            decoration: _inputDecoration('Date'),
+          ),
+        ),
+      ),
+    );
+  }
+
+      Future<void> _saveData(BuildContext context) async {
+        if (dateTimeController.text.isNotEmpty &&
+            kagawadNameController.text.isNotEmpty &&
+            hhInfoNameController.text.isNotEmpty &&
+            riskDescriptionController.text.isNotEmpty &&
+            sourceRiskController.text.isNotEmpty &&
+            numPerWithDisabilityController.text.isNotEmpty &&
+            numSeniorCitizenController.text.isNotEmpty &&
+            numInfantToddlersController.text.isNotEmpty &&
+            numFloodFatalityController.text.isNotEmpty &&
+            propertyDamageController.text.isNotEmpty &&
+            aRemarksController.text.isNotEmpty &&
+            bRemarksController.text.isNotEmpty &&
+            currentControlMeasuresController.text.isNotEmpty &&
+            selectedZone != null &&
+            selectedRiskType != null &&
+            selectedImapactLevel!= null &&
+            selectedProbabilityLevel!= null &&
+            selectedRiskSeverityLevel!= null &&
+            selectedActionYN != null){
+            
+        try {
+        final data = {
+          'kagname': kagawadNameController.text,
+          'dtime': dateTimeController.text,
+          'zonenum': selectedZone,
+          'risktype': selectedRiskType,
+          'hhinfo': hhInfoNameController.text,
+          'riskd': riskDescriptionController.text,
+          'srcrisk': sourceRiskController.text,
+          'numpwd': numPerWithDisabilityController.text,
+          'numsc': numSeniorCitizenController.text,
+          'numit': numInfantToddlersController.text,
+          'numff': numFloodFatalityController.text,
+          'prodam': propertyDamageController.text,
+          'ilevel': selectedImapactLevel,
+          'plevel': selectedProbabilityLevel,
+          'rslevel': selectedRiskSeverityLevel,
+          'ccmeasures': currentControlMeasuresController.text,
+          'actionny': selectedActionYN,
+          'aremarks': aRemarksController.text,
+          'bremarks': bRemarksController.text,
+        };
+
+        final url = Uri.parse('http://localhost/rareportdb/ra_save_report.php');
+
+        final response = await http.post(
+          url,
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: json.encode(data),
+        );
+
+        var responseBody = jsonDecode(response.body);
+        if (response.statusCode == 200 && responseBody["Success"] == true) {
+          print('Data saved successfully');
+
+          setState(() {
+            dateTimeController.clear();
+            kagawadNameController.clear();
+            hhInfoNameController.clear();
+            riskDescriptionController.clear();
+            sourceRiskController.clear();
+            numPerWithDisabilityController.clear();
+            numSeniorCitizenController.clear();
+            numInfantToddlersController.clear();
+            numFloodFatalityController.clear();
+            propertyDamageController.clear();
+            aRemarksController.clear();
+            bRemarksController.clear();
+            selectedZone = null;
+            selectedRiskType = null;
+            selectedImapactLevel = null;
+            selectedProbabilityLevel = null;
+            selectedRiskSeverityLevel = null;
+            selectedActionYN = null;
+          });
+
+          ValidationDialog.showSuccessDialog(
+            context,
+            'Data saved successfully!',
+            () {
+              Navigator.pop(context); // Close success dialog
+              Navigator.pop(context); // Close form
+            },
+          );
+        } else {
+          print('Failed to save data: ${response.body}');
+          ValidationDialog.showErrorDialog(context, 'Failed to save data. Please try again.');
+        }
+      } catch (e) {
+        print('Error: $e');
+        ValidationDialog.showErrorDialog(context, 'An error occurred. Please try again later.');
+      }
+    } else {
+      ValidationDialog.showErrorDialog(context, 'Please fill in all fields.');
+    }
+  }
+}
