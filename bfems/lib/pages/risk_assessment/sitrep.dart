@@ -1,4 +1,6 @@
 // ignore_for_file: file_names, must_be_immutable
+import 'dart:typed_data';
+
 import 'package:flutter/material.dart';
 import 'dart:convert';
 import 'package:bfems/dialogs/validation_dialog.dart';
@@ -8,7 +10,11 @@ import 'package:bfems/widgets/buttons/update_button.dart';
 import 'package:bfems/widgets/context/form.dart';
 import 'package:bfems/widgets/context/table.dart';
 import 'package:bfems/widgets/search_bar.dart' as custom;
+import 'package:google_fonts/google_fonts.dart';
 import 'package:http/http.dart' as http;
+import 'package:pdf/pdf.dart';
+import 'package:pdf/widgets.dart' as pdfWid;
+import 'package:printing/printing.dart';
 
 class SitRepPage extends StatefulWidget {
   const SitRepPage({super.key});
@@ -311,8 +317,18 @@ class _SitRepPageState extends State<SitRepPage> {
       // Print button - blue bg, white text, shadowed border
       ElevatedButton(
         onPressed: () {
-          // Add your print logic here
-        },
+  showDialog(
+    context: context,
+    builder: (context) => AlertDialog(
+      contentPadding: EdgeInsets.zero,
+      content: SizedBox(
+        width: MediaQuery.of(context).size.width * 0.5,
+        height: MediaQuery.of(context).size.height * 0.8,
+        child: PDFView(report: report), // your StatefulWidget
+      ),
+    ),
+  );
+},
         style: ElevatedButton.styleFrom(
           backgroundColor: Colors.blue,
           foregroundColor: Colors.white,
@@ -329,8 +345,9 @@ class _SitRepPageState extends State<SitRepPage> {
       // Delete button - same bg color, white text, shadowed border
       ElevatedButton(
         onPressed: () {
-          _deleteReport(report['id']);
+          _deleteReport(report['id'].toString());
         },
+
         style: ElevatedButton.styleFrom(
           backgroundColor: const Color(0xFFF55555), // same as before
           foregroundColor: Colors.white,
@@ -386,6 +403,149 @@ class _SitRepPageState extends State<SitRepPage> {
     );
   }
 }
+
+class PDFView extends StatefulWidget {
+  final Map<String, dynamic> report;
+
+  const PDFView({super.key, required this.report});
+
+  @override
+  _PDFViewState createState() => _PDFViewState();
+}
+
+class _PDFViewState extends State<PDFView> {
+  @override
+Widget build(BuildContext context) {
+  return Scaffold(
+    appBar: AppBar(
+      title: Text(
+        "${widget.report['calamity']} - Situational Report",
+        style: GoogleFonts.poppins(
+          fontSize: 20,
+        ),
+      ),
+    ),
+    // Move Stack to the body of Scaffold, not AppBar
+    body: Stack(
+      children: [
+        PdfPreview(
+          build: (format) => _createPdf(format, widget.report),
+          canChangePageFormat: true,
+          canChangeOrientation: false,
+          allowSharing: false,
+          useActions: false,
+        ),
+        Positioned(
+          bottom: 20,
+          right: 30, // 👈 moved to the right
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.end, // 👈 align buttons to right
+            children: [
+              ElevatedButton.icon(
+                onPressed: () {
+                  _createPdf(PdfPageFormat.a4, widget.report).then((bytes) {
+                    Printing.sharePdf(
+                      bytes: bytes,
+                      filename: "${widget.report['calamity']}_report.pdf",
+                      // 👈 use calamity name for filename
+                    );
+                  });
+                },
+                icon: Icon(Icons.download, color: Colors.white), // 👈 white icon
+                label: Text(
+                  'Download',
+                  style: TextStyle(color: Colors.white), // 👈 white text
+                ),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.blue,
+                  foregroundColor: Colors.white,
+                  padding: EdgeInsets.symmetric(horizontal: 24, vertical: 19), // 👈 bigger size
+                  textStyle: TextStyle(fontSize: 16), // 👈 slightly larger text
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8), // 👈 less rounded
+                  ),
+                ),
+              ),
+              SizedBox(width: 10),
+              ElevatedButton.icon(
+                onPressed: () async {
+                  await Printing.layoutPdf(
+                    onLayout: (format) => _createPdf(format, widget.report),
+                  );
+                },
+                icon: Icon(Icons.print, color: Colors.white), // 👈 white icon
+                label: Text(
+                  'Print',
+                  style: TextStyle(color: Colors.white), // 👈 white text
+                ),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.blue,
+                  foregroundColor: Colors.white,
+                  padding: EdgeInsets.symmetric(horizontal: 24, vertical: 19),
+                  textStyle: TextStyle(fontSize: 16),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    ),
+  );
+}
+}
+
+Future<Uint8List> _createPdf(PdfPageFormat format, Map<String, dynamic> report) async {
+  final pdf = pdfWid.Document();
+
+  pdf.addPage(
+    pdfWid.Page(
+      pageFormat: format,
+      build: (context) {
+        return pdfWid.Padding(
+          padding: const pdfWid.EdgeInsets.all(32),
+          child: pdfWid.Column(
+            crossAxisAlignment: pdfWid.CrossAxisAlignment.start,
+            children: [
+              pdfWid.Text("Brgy. Buenavista, San Fernando, Camarines Sur",
+                  style: pdfWid.TextStyle(fontSize: 12)),
+              pdfWid.SizedBox(height: 5),
+              pdfWid.Text("Date: ${report['created_at']}",
+                  style: pdfWid.TextStyle(fontSize: 12)),
+              pdfWid.SizedBox(height: 20),
+              pdfWid.Text("To: Municipal Disaster Risk Reduction Officer",
+                  style: pdfWid.TextStyle(fontSize: 12)),
+              pdfWid.SizedBox(height: 10),
+              pdfWid.Text("Subject: Situational Report on Flood Incident",
+                  style: pdfWid.TextStyle(
+                      fontSize: 14, fontWeight: pdfWid.FontWeight.bold)),
+              pdfWid.SizedBox(height: 20),
+              pdfWid.Text(
+                "Dear Sir/Madam,\n\n"
+                "${report['situation_overview']}"
+                "${report['response_actions']}\n\n"
+                "${report['immediate_needs']}\n\n"
+                "${report['recommendations']}\n\n",
+                style: pdfWid.TextStyle(fontSize: 12),
+                textAlign: pdfWid.TextAlign.justify,
+              ),
+              pdfWid.SizedBox(height: 40),
+              pdfWid.Text("Sincerely,", style: pdfWid.TextStyle(fontSize: 12)),
+              pdfWid.SizedBox(height: 20),
+              pdfWid.Text("Captain", style: pdfWid.TextStyle(fontSize: 12)),
+              pdfWid.Text("Barangay Captain", style: pdfWid.TextStyle(fontSize: 12)),
+            ],
+          ),
+        );
+      },
+    ),
+  );
+
+  return pdf.save();
+}
+
 
 class SitRepForm extends StatefulWidget {
   final Function(Map<String, dynamic>) onSave; 
