@@ -261,81 +261,84 @@ class RaReportPageState extends State<RaReportPage> {
   }
 
   Widget _buildTableHeader() {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 22),
-      decoration: const BoxDecoration(
-        color: Colors.white,
-        border: Border(bottom: BorderSide(color: Color(0xFFCCCCCC))),
-        borderRadius: BorderRadius.vertical(top: Radius.circular(10)),
-      ),
-      child: Row(
-        children: [ 
-          const HeaderCellWidget(label: 'ID', flex: 1),
-          const HeaderCellWidget(label: 'Zone', flex: 1 ),
-          const HeaderCellWidget(label: 'Household Head', flex: 1 ),
-          const HeaderCellWidget(label: 'Risk Type', flex: 1 ),
-          const HeaderCellWidget(label: 'PWD(s)', flex: 1 ),
-          const HeaderCellWidget(label: 'Senior Citizen(s)', flex: 1 ),
-          const HeaderCellWidget(label: 'Infant/Toddler(s)', flex: 1 ),
-          const HeaderCellWidget(label: 'Flood Fatality(s)', flex: 1 ),
-          const HeaderCellWidget(label: 'Property Damage(s)', flex: 1),
-          const HeaderCellWidget(label: 'Impact Level', flex: 1),
-          const HeaderCellWidget(label: 'Probability Level', flex: 1),
-          const HeaderCellWidget(label: 'Severity Level', flex: 1),
-          const HeaderCellWidget(label: 'Action Needed', flex: 1, center: true),
-        ],
-      ),
-    );
-  }
+  return Container(
+    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 22),
+    decoration: const BoxDecoration(
+      color: Colors.white,
+      border: Border(bottom: BorderSide(color: Color(0xFFCCCCCC))),
+      borderRadius: BorderRadius.vertical(top: Radius.circular(10)),
+    ),
+    child: Row(
+      children: [ 
+        const HeaderCellWidget(label: 'ID', flex: 1),
+        const HeaderCellWidget(label: 'Zone', flex: 1),
+        const HeaderCellWidget(label: 'Household Head', flex: 1),
+        const HeaderCellWidget(label: 'Risk Type', flex: 1),
+        const HeaderCellWidget(label: 'PWD(s)', flex: 1),
+        const HeaderCellWidget(label: 'Senior Citizen(s)', flex: 1),
+        const HeaderCellWidget(label: 'Infant/Toddler(s)', flex: 1),
+        const HeaderCellWidget(label: 'Flood Fatality(s)', flex: 1),
+        const HeaderCellWidget(label: 'Property Damage(s)', flex: 1),
+        const HeaderCellWidget(label: 'Impact Level', flex: 1),
+        const HeaderCellWidget(label: 'Probability Level', flex: 1),
+        const HeaderCellWidget(label: 'Severity Level', flex: 1),
+        const HeaderCellWidget(label: 'Action Needed', flex: 1, center: true),
+        // Added header for PopupMenuWidget action column
+        const HeaderCellWidget(label: 'Options', flex: 1, center: true),
+      ],
+    ),
+  );
+}
 
-  Widget _buildTableRows() {
-    List<Map<String, dynamic>> paginatedRecords = _getPaginatedRecords();
-    return ListView.builder(
-      itemCount: paginatedRecords.length,
-      itemBuilder: (context, index) {
-        final report = paginatedRecords[index];
-        return Container(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-          decoration: const BoxDecoration(
-            border: Border(bottom: BorderSide(color: Color(0xFFCCCCCC))),
-          ),
-          child: Row(
-            children: [ 
-              DataCellWidget(value: report['id'] ?? '', flex: 1),
-              DataCellWidget(value: report['zone_num'] ?? '', flex: 2),
-              DataCellWidget(value: report['household_name'] ?? '', flex: 3),
-              DataCellWidget(value: report['risk_type'] ?? '', flex: 3),
-              DataCellWidget(value: report['num_of_pwd'] ?? '', flex: 2),
-              DataCellWidget(value: report['num_of_senior'] ?? '', flex: 2),
-              DataCellWidget(value: report['num_of_infant_toddler'] ?? '', flex: 2),
-              DataCellWidget(value: report['num_of_flood_fatality'] ?? '', flex: 2),
-              DataCellWidget(value: report['num_of_property_damage'] ?? '', flex: 2),
-              DataCellWidget(value: report['risk_impact_level'] ?? '', flex: 3),
-              DataCellWidget(value: report['risk_probability_level'] ?? '', flex: 3),
-              DataCellWidget(value: report['risk_severity_level'] ?? '', flex: 3),
-              DataCellWidget(value: report['option_action'] ?? '', flex: 1, center: true),
-              Expanded(
-                flex: 1,
-                child: Center(
-                  child: PopupMenuWidget(
-                    onSelected: (value) {
-                      if (value == 'View') {
-                        _showRAForm(context, report, isViewMode: true);
-                      } else if (value == 'Update') {
-                        _showRAForm(context, report, isViewMode: false);
-                      } else if (value == 'Delete') {
-                        _deleteReport(report['id']);
-                      }
-                    },
-                  ),
+Widget _buildTableRows() {
+  List<Map<String, dynamic>> paginatedRecords = _getPaginatedRecords();
+  return ListView.builder(
+    itemCount: paginatedRecords.length,
+    itemBuilder: (context, index) {
+      final report = paginatedRecords[index];
+      return Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        decoration: const BoxDecoration(
+          border: Border(bottom: BorderSide(color: Color(0xFFCCCCCC))),
+        ),
+        child: Row(
+          children: [ 
+            DataCellWidget(value: report['id'] ?? '', flex: 1),
+            DataCellWidget(value: report['zone_num'] ?? '', flex: 1),
+            DataCellWidget(value: report['household_name'] ?? '', flex: 1),
+            DataCellWidget(value: report['risk_type'] ?? '', flex: 1),
+            DataCellWidget(value: report['num_of_pwd'] ?? '', flex: 1),
+            DataCellWidget(value: report['num_of_senior'] ?? '', flex: 1),
+            DataCellWidget(value: report['num_of_infant_toddler'] ?? '', flex: 1),
+            DataCellWidget(value: report['num_of_flood_fatality'] ?? '', flex: 1),
+            DataCellWidget(value: report['num_of_property_damage'] ?? '', flex: 1),
+            DataCellWidget(value: report['risk_impact_level'] ?? '', flex: 1),
+            DataCellWidget(value: report['risk_probability_level'] ?? '', flex: 1),
+            DataCellWidget(value: report['risk_severity_level'] ?? '', flex: 1),
+            DataCellWidget(value: report['option_action'] ?? '', flex: 1, center: true),
+            // PopupMenuWidget must have flex 1 to match header column
+            Expanded(
+              flex: 1,
+              child: Center(
+                child: PopupMenuWidget(
+                  onSelected: (value) {
+                    if (value == 'View') {
+                      _showRAForm(context, report, isViewMode: true);
+                    } else if (value == 'Update') {
+                      _showRAForm(context, report, isViewMode: false);
+                    } else if (value == 'Delete') {
+                      _deleteReport(report['id']);
+                    }
+                  },
                 ),
               ),
-            ],
-          ),
-        );
-      },
-    );
-  }           
+            ),
+          ],
+        ),
+      );
+    },
+  );
+}
 
   void _showRAForm(BuildContext context, Map<String, dynamic>? existingData, {bool isViewMode = false}) {
     showDialog(

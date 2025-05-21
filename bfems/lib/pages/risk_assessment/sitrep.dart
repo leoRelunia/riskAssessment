@@ -282,7 +282,7 @@ class _SitRepPageState extends State<SitRepPage> {
     itemBuilder: (context, index) {
       final report = paginatedRecords[index];
       return Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 11),
         decoration: const BoxDecoration(
           border: Border(bottom: BorderSide(color: Color(0xFFCCCCCC))),
         ),
